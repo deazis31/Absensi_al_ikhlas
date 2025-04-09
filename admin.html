@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Absensi Pengajian Masjid Al Ikhlas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
+    <!-- jsPDF dan jsPDF-AutoTable untuk PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS untuk Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Scheherazade New', 'Amiri', serif;
+            @apply bg-gray-100 text-gray-800;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Amiri', serif;
+            font-weight: 700;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .hover-scale {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background-color: #065f46;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .delete-btn, .edit-btn, .logout-btn {
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .delete-btn {
+            background-color: #dc2626;
+        }
+        .delete-btn:hover {
+            background-color: #b91c1c;
+        }
+        .edit-btn {
+            background-color: #2563eb;
+        }
+        .edit-btn:hover {
+            background-color: #1d4ed8;
+        }
+        .logout-btn {
+            background-color: #dc2626;
+        }
+        .logout-btn:hover {
+            background-color: #b91c1c;
+        }
+        .hidden-admin {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header dengan Navbar -->
+    <header class="bg-gradient-to-r from-emerald-800 to-teal-700 text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fas fa-mosque text-3xl mr-3"></i>
+                <h1 class="text-2xl font-bold tracking-wide">ADMIN - ABSENSI PENGAJIAN</h1>
+            </div>
+            <button id="menu-btn" class="md:hidden focus:outline-none">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+            <nav class="hidden md:block">
+                <ul class="flex space-x-8">
+                    <li><a href="index.html" class="hover:text-amber-300 transition-colors duration-300">Kembali ke Absensi</a></li>
+                    <li><a href="#data-absensi" class="hover:text-amber-300 transition-colors duration-300">Data Absensi</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-emerald-900 shadow-md">
+            <ul class="px-4 py-4 space-y-3">
+                <li><a href="index.html" class="block py-2 hover:text-amber-300 transition-colors duration-300">Kembali ke Absensi</a></li>
+                <li><a href="#data-absensi" class="block py-2 hover:text-amber-300 transition-colors duration-300">Data Absensi</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Data Absensi Section -->
+        <section id="data-absensi" class="py-20">
+            <div class="container mx-auto px-4">
+                <h2 class="text-4xl font-bold text-center text-emerald-800 mb-16 animate-fade-in-up">Data Absensi</h2>
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="admin-logout" class="logout-btn">Data</button>
+                        <div id="admin-controls" class="flex space-x-4">
+                            <button id="download-pdf" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-6 rounded-full transition-all duration-300">Unduh PDF</button>
+                            <button id="download-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-full transition-all duration-300">Unduh Excel</button>
+                            <button id="delete-all" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-all duration-300">Hapus Semua</button>
+                        </div>
+                    </div>
+                    <table id="absensi-table">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Alamat</th>
+                                <th>Kelompok</th>
+                                <th>Hadir</th>
+                                <th>Alasan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="absensi-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-emerald-800 to-teal-700 text-white py-10">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0 text-center md:text-left">
+                    <h3 class="text-2xl font-bold flex items-center justify-center md:justify-start">
+                        <i class="fas fa-mosque mr-3"></i>
+                        ADMIN - ABSENSI PENGAJIAN
+                    </h3>
+                    <p class="mt-3 opacity-90">Masjid Al Ikhlas</p>
+                </div>
+                <div class="text-center">
+                    <p class="opacity-90">© 2025 Masjid Al Ikhlas. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Popup untuk autentikasi admin saat halaman dimuat
+        const ADMIN_PASSWORD = 'admin123';
+        const password = prompt('Masukkan kata sandi admin:');
+        if (password !== ADMIN_PASSWORD) {
+            alert('Kata sandi salah! Anda akan dialihkan ke halaman absensi.');
+            window.location.href = 'index.html';
+        } else {
+            localStorage.setItem('isAdmin', 'true');
+            alert('Login admin berhasil!');
+        }
+
+        // Hamburger Menu
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            const icon = menuBtn.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        });
+
+        // Animasi Scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-fade-in-up');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Admin Logic
+        const absensiBody = document.getElementById('absensi-body');
+        const adminLogoutBtn = document.getElementById('admin-logout');
+
+        // Logout Admin
+        adminLogoutBtn.addEventListener('click', () => {
+            if (confirm('Apakah Anda yakin ingin keluar dari mode admin?')) {
+                localStorage.removeItem('isAdmin');
+                alert('Anda telah keluar dari mode admin.');
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Muat data dari localStorage saat halaman dimuat
+        let absensiData = JSON.parse(localStorage.getItem('absensiData')) || [];
+        renderAbsensiTable();
+
+        function renderAbsensiTable() {
+            absensiBody.innerHTML = '';
+            if (absensiData.length === 0) {
+                absensiBody.innerHTML = '<tr><td colspan="6" class="text-center">Belum ada data absensi.</td></tr>';
+                return;
+            }
+            absensiData.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.name}</td>
+                    <td>${entry.address}</td>
+                    <td>${entry.group}</td>
+                    <td>${entry.hadir}</td>
+                    <td>${entry.reason}</td>
+                    <td>
+                        <button class="edit-btn" data-index="${index}">Edit</button>
+                        <button class="delete-btn" data-index="${index}">Hapus</button>
+                    </td>
+                `;
+                absensiBody.appendChild(row);
+            });
+
+            // Tambahkan event listener untuk tombol hapus
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = e.target.getAttribute('data-index');
+                    absensiData.splice(index, 1); // Hapus entri dari array
+                    localStorage.setItem('absensiData', JSON.stringify(absensiData));
+                    renderAbsensiTable(); // Perbarui tabel
+                });
+            });
+
+            // Tambahkan event listener untuk tombol edit
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = e.target.getAttribute('data-index');
+                    const entry = absensiData[index];
+                    const newName = prompt('Masukkan nama baru:', entry.name);
+                    const newAddress = prompt('Masukkan alamat baru:', entry.address);
+                    const newGroup = prompt('Masukkan kelompok baru (Kelompok Sidodadi/Karanggayam/Kwagean):', entry.group);
+                    const newHadir = prompt('Hadir? (Ya/Tidak):', entry.hadir);
+                    const newReason = newHadir === 'Tidak' ? prompt('Masukkan alasan:', entry.reason) : '-';
+                    if (newName && newAddress && newGroup && newHadir) {
+                        absensiData[index] = {
+                            name: newName,
+                            address: newAddress,
+                            group: newGroup,
+                            hadir: newHadir,
+                            reason: newReason
+                        };
+                        localStorage.setItem('absensiData', JSON.stringify(absensiData));
+                        renderAbsensiTable();
+                    }
+                });
+            });
+        }
+
+        // Unduh PDF
+        document.getElementById('download-pdf').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text('Data Absensi Pengajian Masjid Al Ikhlas', 10, 10);
+            doc.autoTable({
+                head: [['Nama', 'Alamat', 'Kelompok', 'Hadir', 'Alasan']],
+                body: absensiData.map(entry => [entry.name, entry.address, entry.group, entry.hadir, entry.reason]),
+                startY: 20
+            });
+            doc.save('absensi_pengajian.pdf');
+        });
+
+        // Unduh Excel
+        document.getElementById('download-excel').addEventListener('click', () => {
+            const ws = XLSX.utils.json_to_sheet(absensiData, { header: ['name', 'address', 'group', 'hadir', 'reason'] });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Absensi');
+            XLSX.writeFile(wb, 'absensi_pengajian.xlsx');
+        });
+
+        // Hapus Semua Data
+        document.getElementById('delete-all').addEventListener('click', () => {
+            if (confirm('Apakah Anda yakin ingin menghapus semua data absensi?')) {
+                absensiData = [];
+                localStorage.setItem('absensiData', JSON.stringify(absensiData));
+                renderAbsensiTable();
+            }
+        });
+    </script>
+</body>
+</html>
